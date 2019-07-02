@@ -1,0 +1,119 @@
+
+1.make hsvlist listing all particles
+using ls
+
+2.copy particles to the directory
+getparticles.sh
+
+3.generate star file
+prepare head.star
+genstar.sh
+
+4.group particles
+relion_star_printtable particles_bin1_org.star data_ _rlnDefocusU _rlnMicrographName | sort -n | uniq -f 1 |awk '{print $2" "$1}' > split_mics_defocus.dat
+
+remove particles with defocus lower than 0 in split_mics_defocus.dat
+
+induce empty line to indicate groups
+cat split_mics_defocus.dat | awk '{print; if (NR%40==0) print "";}' > split_mics_defocus_emptylines.dat
+
+csh Make_group.csh split_mics_defocus_emptylines.dat particles_bin1_org.star particles_bin1_grouped.star
+
+5.relion preprocess making particle stacks
+
+for relion1.4
+relion_preprocess --o particles_bin1 --operate_on particles_bin1_org.star --extract  --invert_contrast --bg_radius 450 --norm
+
+%for HSV I did
+%relion_preprocess --o particles_bin1 --operate_on particles_bin1_org.star --extract  --invert_contrast --bg_radius 700 --norm
+
+
+6.icosahedral reconstruction with scaled particles
+relion_refine
+
+7. spilt particle stack to single images
+trimvolZ.sh
+
+8.Modify X and Y for particles in bin4 to bin1
+modifyorientation.py change the value multipling the center
+
+9.expand I3 symmetry for particle stat
+relion_particle_symmetry_expand --i frombin4to960.star --o frombin4to960_expanded.star --sym I3
+
+10.generate stars for subparticle picking
+extractvertex.py
+change input output and radius and center
+new extract vertices for HSV can calculate the defocus for each vertices
+
+11.generate micrograph star for subparticle picking
+
+data_
+
+loop_
+_rlnMicrographName #1
+ls particles_960/*.mrc >> micrographs.star
+
+12 extract subparticles
+mpirun -n 4 relion_preprocess_mpi --i micrographs.star --coord_suffix .star --coord_dir . --set_angpix 1.545 --extract --extract_size 256 --operate_out particles_vertices
+
+for new HSV
+I used
+mpirun -n 4 relion_preprocess_mpi --i micrographs.star --coord_suffix .star --coord_dir . --set_angpix 1.03 --extract --extract_size 384 --operate_out particles_vertices
+
+13. create particle stack or particle star from picked particles
+head -27 Particles/particles_bin1/1000001_extract.star > particle_vertices.star
+cat Particles/particles_bin1/*.star | grep particles >> particle_vertices.star
+
+14.relion_preprocess create particle stack
+relion_preprocess --o particles_vertics_stack --operate_on particle_vertices.star
+
+
+15.reconstruct a reference
+relion_reconstruct
+
+16.classify the sub particles
+relion_refine
+
+17.remove duplicate
+removedup.py 
+
+18.not nessary is you used extractvertices to calculate defocus
+defocus calculation  
+defocus_calc.py
+
+19.Dont do this 
+padding particle
+pad_particles.sh
+relion_preprocess
+
+20.refine C5 structure
+
+21.convert particle stack to images
+trim_portal.sh
+
+22.prepare extract portal star
+extractportal.py
+
+
+23.prepare micrographs.star
+
+data_
+
+loop_
+_rlnMicrographName #1
+_rlnDefocusU #2
+_rlnDefocusV #3
+_rlnDefocusAngle #4
+_rlnVoltage #5
+_rlnAmplitudeContrast #6
+_rlnSphericalAberration #7
+_rlnGroupName #8
+cat particles_portal/*.star  | grep particle | awk '{print "particles_portal/"$2" "$3" "$4" "$5" "$6" "$7" "$8}' > micrographs.star
+
+24.extract portal and phase flip
+relion_preprocess --i micrographs.star --coord_suffix .star --coord_dir . --set_angpix 1.03 --extract --extract_size 192 --operate_out particles_portal --phase_flip
+
+24.prepare portal star from picked particles
+head -27 Particles/particles_portal/1000047_extract.star > particles_portal.star
+cat Particles/particles_portal/*.star | grep particles >> particlesre_portal.star
+
