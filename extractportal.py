@@ -50,11 +50,11 @@ _rlnCoordinateY #23\n")
     k=np.pi/180.0
 
     (rot,tilt,psi) = np.array([float(j[10])*k,float(j[11])*k,float(j[12])*k],dtype=np.float)
-        
-    t = np.array([np.cos(psi),-np.sin(psi)],dtype=np.float)*np.sin(tilt)*567+720
+
+    t = np.array([np.cos(psi),-np.sin(psi)],dtype=np.float)*np.sin(tilt)*(-48)+180
     coord.write(j[0]+" "+coordName.split('.')[0]+".mrc ")
     for item in j[2:13]:
-        oord.write(item+" ")
+        coord.write(item+" ")
     coord.write("0.0 0.0 ")
     for item in j[15:21]:
         coord.write(item+" ")
@@ -63,21 +63,22 @@ _rlnCoordinateY #23\n")
 
 
 if __name__=='__main__':
-    forg=open('frombin4_run1_expanded.star','r')
+    forg=open('particles_run8_cls1_removedup.star','r')
     fo = forg.readlines()
     i=0
     o=len(fo)
 
     for line in fo:
         i=i+1
-        if i < 26:
-            print line,
-        elif i == 26:
-            print "_rlnCoordinateX #22"
-            print "_rlnCoordinateY #23"
-            l=line.split()
-            handle(l)
-        else:
+#        if i < 26:
+#            print line,
+#        elif i == 26:
+#            print "_rlnCoordinateX #22"
+#            print "_rlnCoordinateY #23"
+#            l=line.split()
+#            handle(l)
+#        else:
+        if i>27:
             l=line.split()
             handle(l)
 
