@@ -2,10 +2,18 @@
 
 import numpy as np
 
-
+rot_index=11-1
+tlt_index=12-1
+psi_index=13-1
+orgX_index=14-1
+orgY_index=15-1
+img_index=4-1
+mic_index=5-1
+dU_index=6-1
+dV_index=7-1
 
 def isSameVertex(l1, l2):
-    if abs(float(l1[11]) - float(l2[11])) < 0.1 and abs(float(l1[12]) - float(l2[12])) < 0.1:
+    if abs(float(l1[tlt_index]) - float(l2[tlt_index])) < 0.1 and abs(float(l1[psi_index]) - float(l2[psi_index])) < 0.1:
         return True
     else:
         return False
@@ -23,75 +31,94 @@ def handleGroup(imageGroup):
                 sign = 1
         if sign == 0:
             groups.append([i])
-    coordName = imageGroup[0][0].split('@')
+    coordName = imageGroup[0][img_index].split('@')
     coordName = "1"+coordName[0]+'.star'
     print coordName
-    coord = open("../../particles_split_org0/"+coordName,'w')
+    coord = open("../particles_bin1_normed/"+coordName,'w')
+
     coord.write("\
-data_\n\
+data_images\n\
 \n\
-loop_ \n\
-_rlnImageName #1 \n\
-_rlnMicrographName #2 \n\
-_rlnDefocusU #3 \n\
-_rlnDefocusV #4 \n\
-_rlnDefocusAngle #5 \n\
-_rlnVoltage #6 \n\
-_rlnAmplitudeContrast #7 \n\
-_rlnSphericalAberration #8 \n\
-_rlnGroupName #9 \n\
-_rlnGroupNumber #10 \n\
-_rlnAngleRot #11 \n\
-_rlnAngleTilt #12 \n\
-_rlnAnglePsi #13 \n\
-_rlnOriginX #14 \n\
-_rlnOriginY #15 \n\
-_rlnClassNumber #16 \n\
-_rlnNormCorrection #17 \n\
-_rlnRandomSubset #18 \n\
-_rlnLogLikeliContribution #19 \n\
-_rlnMaxValueProbDistribution #20 \n\
-_rlnNrOfSignificantSamples #21 \n\
+loop_\n\
+_rlnVoltage #1\n\
+_rlnAmplitudeContrast #2\n\
+_rlnSphericalAberration #3\n\
+_rlnImageName #4\n\
+_rlnMicrographName #5\n\
+_rlnDefocusU #6\n\
+_rlnDefocusV #7\n\
+_rlnDefocusAngle #8\n\
+_rlnGroupName #9\n\
+_rlnGroupNumber #10\n\
+_rlnAngleRot #11\n\
+_rlnAngleTilt #12\n\
+_rlnAnglePsi #13\n\
+_rlnOriginX #14\n\
+_rlnOriginY #15\n\
+_rlnClassNumber #16\n\
+_rlnNormCorrection #17\n\
+_rlnRandomSubset #18\n\
+_rlnLogLikeliContribution #19\n\
+_rlnMaxValueProbDistribution #20\n\
+_rlnNrOfSignificantSamples #21\n\
 _rlnCoordinateX #22\n\
 _rlnCoordinateY #23\n")
 
     k=np.pi/180.0
     for item in groups:
         j = imageGroup[item[0]]
-        (rot,tilt,psi) = np.array([float(j[10])*k,float(j[11])*k,float(j[12])*k],dtype=np.float)
+        (rot,tilt,psi) = np.array([float(j[rot_index])*k,float(j[tlt_index])*k,float(j[psi_index])*k],dtype=np.float)
+        t = np.array([np.cos(psi),-np.sin(psi)],dtype=np.float)*np.sin(tilt) * 350 + 512
+
+        coordX=str(t[0]-float(j[orgX_index])*2)
+        coordY=str(t[1]-float(j[orgY_index])*2)
         
-        t = np.array([np.cos(psi),-np.sin(psi)],dtype=np.float)*np.sin(tilt)*65+90
-        coord.write(j[0]+" "+coordName.split('.')[0]+".mrc ")
-        for item in j[2:13]:
-            coord.write(item+" ")
-        coord.write("0.0 0.0 ")
-        for item in j[15:21]:
-            coord.write(item+" ")
-        coord.write(str(t[0]+float(j[13]))+' '+str(t[1]+float(j[14]))+'\n')
-
-
+        j[mic_index]=coordName.split('.')[0]+".mrc" 
+        j[dU_index]=str(float(j[dU_index])-np.cos(tilt)*550)
+        j[dV_index]=str(float(j[dV_index])-np.cos(tilt)*550)
+        #print(j)
+        j[orgY_index]="0.0"
+        j[orgX_index]="0.0"
+        #orginal_coordX=float(j[0]) + (float(coordX)-640)
+        #rrginal_coordY=float(j[1]) + (float(coordY)-640)
+        #print(j)
+        if True:#orginal_coordX > 100 and orginal_coordX < 3718 and orginal_coordY > 100 and orginal_coordY< 3610:
+            #j[0] = coordX
+            #j[1] = coordY
+            for item in j:
+              
+                coord.write(item+" ")
+            coord.write(coordX+" "+coordY)
+            #print(coordX+" "+coordY)
+            coord.write('\n')
     coord.close()
 
 
 if __name__=='__main__':
-    forg=open('expanded.star','r')
+    root_name="run1_ct14_it029_data"
+    from subprocess import call
+    s="relion_particle_symmetry_expand --i {}.star --o  {}_expanded.star --sym I3".format(root_name, root_name)
+    #call(s,shell=True)
+
+    forg=open("{}_expanded.star".format(root_name),'r')
     fo = forg.readlines()
+    forg.close()
     i=0
+
     o=len(fo)
+
+    head_length=26
 
     for line in fo:
         i=i+1
-        if i < 26:
-            print line,
-        elif i == 26:
-            print "_rlnCoordinateX #22"
-            print "_rlnCoordinateY #23"
+        if i < head_length:
+            pass
+        elif i == head_length:
             l=line.split()
             imageGroup =[l]
         else:
             l=line.split()
-            
-            if len(l)>0 and imageGroup[0][0] == l[0]:
+            if len(l)>0 and imageGroup[0][img_index] == l[img_index]:
                 imageGroup.append(l)
 
                 if i == o:
