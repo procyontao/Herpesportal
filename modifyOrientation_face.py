@@ -61,7 +61,7 @@ def matZ(gama):
     m=[[np.cos(gama),0,-np.sin(gama)],[0,1,0],[np.sin(gama),0,np.cos(gama)]]
     return np.array(m,dtype=float)
 r=matZ(np.arctan(5**0.5-3))
-forg=open('run1_ct29_data_expanded.star','r')
+forg=open('run1_ct14_it029_data_expanded.star','r')
 
 i=0
 
@@ -79,8 +79,8 @@ for line in forg:
         l[10]=rot_out
         l[11]=tilt_out
         l[12]=psi_out
-        l[13]=float(l[13])*4
-        l[14]=float(l[14])*4
+        #l[13]=float(l[13])*4
+        #l[14]=float(l[14])*4
         for item in l:
             print item,
         print '\n',
